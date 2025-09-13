@@ -1,3 +1,4 @@
+import timeit
 #== Алгоритм Кнута-Морріса-Пратта (KMP) для пошуку підрядка в рядку ===#
 def compute_lps(pattern):
     lps = [0] * len(pattern)
@@ -76,31 +77,85 @@ def boyer_moore_search(text, pattern):
   # Якщо підрядок не знайдено, повертаємо -1
   return -1
 
-text = "Being a developer is not easy"
-pattern = "developer"
+#== Алгоритм Рабіна-Карпа для пошуку підрядка в рядку ===#
+def polynomial_hash(s, base=256, modulus=101):
+    """
+    Повертає поліноміальний хеш рядка s.
+    """
+    n = len(s)
+    hash_value = 0
+    for i, char in enumerate(s):
+        power_of_base = pow(base, n - i - 1) % modulus
+        hash_value = (hash_value + ord(char) * power_of_base) % modulus
+    return hash_value
 
-position = boyer_moore_search(text, pattern)
-if position != -1:
-  print(f"Substring found at index {position}")
-else:
-  print("Substring not found")
+def rabin_karp_search(main_string, substring):
+    # Довжини основного рядка та підрядка пошуку
+    substring_length = len(substring)
+    main_string_length = len(main_string)
+    
+    # Базове число для хешування та модуль
+    base = 256 
+    modulus = 101  
+    
+    # Хеш-значення для підрядка пошуку та поточного відрізка в основному рядку
+    substring_hash = polynomial_hash(substring, base, modulus)
+    current_slice_hash = polynomial_hash(main_string[:substring_length], base, modulus)
+    
+    # Попереднє значення для перерахунку хешу
+    h_multiplier = pow(base, substring_length - 1) % modulus
+    
+    # Проходимо крізь основний рядок
+    for i in range(main_string_length - substring_length + 1):
+        if substring_hash == current_slice_hash:
+            if main_string[i:i+substring_length] == substring:
+                return i
+
+        if i < main_string_length - substring_length:
+            current_slice_hash = (current_slice_hash - ord(main_string[i]) * h_multiplier) % modulus
+            current_slice_hash = (current_slice_hash * base + ord(main_string[i + substring_length])) % modulus
+            if current_slice_hash < 0:
+                current_slice_hash += modulus
+
+    return -1
 
 
-# raw = "Цей алгоритм часто використовується в текстових редакторах та системах пошуку для ефективного знаходження підрядка в тексті."
-
-# pattern = "алг"
-
-# print(kmp_search(raw, pattern))
+#== Функція для вимірювання часу виконання ===#
+def measure_time(func, *args):
+    runtime = timeit.timeit(lambda: func(*args), number=1000)
+    return func.__name__, runtime
 
 def __main__():
+    funcs = [kmp_search, boyer_moore_search, rabin_karp_search]
+
+    patterns = ['логарифмічний', 'представлений']
+    with open('стаття 1.txt', 'r', encoding='windows-1251') as file:
+        text = file.read()
+    for pattern in patterns:
+        index = kmp_search(text, pattern)
+        
+        if index != -1:
+            print('стаття 1')
+            print(f"Підрядок '{pattern}' знайдено на позиції: {index}")
+        else:
+            print(f"Підрядок '{pattern}' не знайдено.")
+        for func in funcs:
+            func_name, runtime = measure_time(func, text, pattern)
+            print(f"    Час виконання 1000 разів {func_name}: {runtime:.6f} секунд")
+
+    patterns = ['рекомендовано', 'переповнення']
     with open('стаття 2.txt', 'r', encoding='utf-8') as file:
         text = file.read()
-    pattern = input("Введіть підрядок для пошуку: ")
-    index = kmp_search(text, pattern)
-    if index != -1:
-        print(f"Підрядок знайдено на позиції: {index}")
-    else:
-        print("Підрядок не знайдено.")
+    for pattern in patterns:
+        index = kmp_search(text, pattern)
+        if index != -1:
+            print('стаття 2')
+            print(f"Підрядок '{pattern}' знайдено на позиції: {index}")
+        else:
+            print(f"Підрядок '{pattern}' не знайдено.")
+        for func in funcs:
+            func_name, runtime = measure_time(func, text, pattern)
+            print(f"    Час виконання 1000 разів {func_name}: {runtime:.6f} секунд")
 
 if __name__ == "__main__":
     __main__()
